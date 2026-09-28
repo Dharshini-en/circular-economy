@@ -14,9 +14,9 @@ function App() {
                 <Route path="/login" element={IS_DEMO_MODE ? <Navigate to="/" replace /> : <LoginPage />} />
                 <Route path="/register" element={IS_DEMO_MODE ? <Navigate to="/" replace /> : <RegisterPage />} />
                 <Route path="/" element={<Dashboard />} />
-                <Route path="/register-product" element={IS_DEMO_MODE ? <Navigate to="/" replace /> : <ProductRegistration />} />
-                <Route path="/products/:productId" element={IS_DEMO_MODE ? <Navigate to="/" replace /> : <ProductDetails />} />
-                <Route path="/usage-entry" element={IS_DEMO_MODE ? <Navigate to="/" replace /> : <UsageEntry />} />
+                <Route path="/register-product" element={<ProductRegistration />} />
+                <Route path="/products/:productId" element={<ProductDetails />} />
+                <Route path="/usage-entry" element={<UsageEntry />} />
             </Routes>
         </BrowserRouter>
     )

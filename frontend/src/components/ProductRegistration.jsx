@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { API_BASE_URL } from '../api'
+import { Link, useNavigate } from 'react-router-dom'
+import { API_BASE_URL, IS_DEMO_MODE } from '../api'
+import { readDemoProducts, writeDemoProducts } from '../demoStore'
 
 const ProductRegistration = () => {
     const [form, setForm] = useState({
@@ -12,6 +14,7 @@ const ProductRegistration = () => {
         service_interval_hours: '500',
     })
     const [message, setMessage] = useState('')
+    const navigate = useNavigate()
 
     const handleAutoFill = () => {
         setForm({
@@ -32,15 +35,36 @@ const ProductRegistration = () => {
 
     const handleSubmit = async (event) => {
         event.preventDefault()
+        if (IS_DEMO_MODE) {
+            const { products } = readDemoProducts()
+            if (products.some((product) => product.product_id === form.product_id)) {
+                setMessage('That Product ID already exists in this demo.')
+                return
+            }
+            writeDemoProducts([...products, {
+                ...form,
+                expected_life_hours: Number(form.expected_life_hours),
+                service_interval_hours: Number(form.service_interval_hours),
+                health_score: 100,
+                remaining_useful_life: Number(form.expected_life_hours),
+                service_required: 'No',
+            }])
+            navigate('/')
+            return
+        }
         const token = localStorage.getItem('ai_plm_token')
         const formData = new FormData(event.target)
-        const response = await fetch(`${API_BASE_URL}/api/products`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-            body: formData,
-        })
-        const data = await response.json()
-        setMessage(data.message || 'Product registered successfully')
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/products`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` },
+                body: formData,
+            })
+            const data = await response.json()
+            setMessage(data.message || 'Product registered successfully')
+        } catch {
+            setMessage('Unable to connect to backend')
+        }
     }
 
     return (
@@ -50,7 +74,9 @@ const ProductRegistration = () => {
                     <div>
                         <p className="text-sm uppercase tracking-[0.3em] text-cyan-300">Product Registration</p>
                         <h1 className="mt-3 text-3xl font-semibold text-white">Register New Gearbox</h1>
+                        {IS_DEMO_MODE && <p className="mt-2 text-sm text-slate-400">Demo records are saved in this browser only.</p>}
                     </div>
+                    <Link to="/" className="text-cyan-300 hover:text-cyan-200">Back to dashboard</Link>
                 </div>
                 {message && <div className="mb-6 rounded-3xl bg-cyan-500/10 p-4 text-cyan-200">{message}</div>}
                 <form onSubmit={handleSubmit} className="grid gap-5 lg:grid-cols-2">
@@ -74,14 +100,14 @@ const ProductRegistration = () => {
                             />
                         </label>
                     ))}
-                    <label className="block lg:col-span-2">
+                    {!IS_DEMO_MODE && <label className="block lg:col-span-2">
                         <span className="text-slate-300">Upload CAD Model</span>
                         <input type="file" name="cad_file" className="mt-2 w-full text-slate-100" />
-                    </label>
-                    <label className="block lg:col-span-2">
+                    </label>}
+                    {!IS_DEMO_MODE && <label className="block lg:col-span-2">
                         <span className="text-slate-300">Upload BOM</span>
                         <input type="file" name="bom_file" className="mt-2 w-full text-slate-100" />
-                    </label>
+                    </label>}
                     <button type="submit" className="rounded-3xl bg-cyan-500 px-6 py-3 text-white transition hover:bg-cyan-400">Save Product</button>
                     <button type="button" onClick={handleAutoFill} className="rounded-3xl border border-cyan-500 bg-slate-950 px-6 py-3 text-cyan-300 transition hover:bg-slate-900">Auto Fill Example</button>
                 </form>

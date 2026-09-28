@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { API_BASE_URL } from '../api'
+import { Link, useNavigate } from 'react-router-dom'
+import { API_BASE_URL, IS_DEMO_MODE } from '../api'
+import { readDemoProducts, writeDemoProducts } from '../demoStore'
 
 const UsageEntry = () => {
     const [form, setForm] = useState({
@@ -21,6 +23,7 @@ const UsageEntry = () => {
         next_service_days: '14',
     })
     const [message, setMessage] = useState('')
+    const navigate = useNavigate()
 
     const handleAutoFill = () => {
         setForm({
@@ -50,14 +53,43 @@ const UsageEntry = () => {
 
     const handleSubmit = async (event) => {
         event.preventDefault()
+        if (IS_DEMO_MODE) {
+            const { products } = readDemoProducts()
+            const productIndex = products.findIndex((product) => product.product_id === form.product_id)
+            if (productIndex < 0) {
+                setMessage('Product ID not found. Register the product first.')
+                return
+            }
+            const numericFields = [
+                'product_age_months', 'operating_hours', 'operating_cycles', 'average_load',
+                'average_temperature', 'lubrication_interval', 'last_service_hours',
+                'number_of_services', 'vibration_level', 'health_score',
+                'remaining_useful_life', 'next_service_days',
+            ]
+            const updatedProducts = products.slice()
+            updatedProducts[productIndex] = {
+                ...updatedProducts[productIndex],
+                ...Object.fromEntries(numericFields.map((field) => [field, Number(form[field])])),
+                oil_condition: form.oil_condition,
+                bearing_condition: form.bearing_condition,
+                service_required: form.service_required,
+            }
+            writeDemoProducts(updatedProducts)
+            navigate('/')
+            return
+        }
         const token = localStorage.getItem('ai_plm_token')
-        const response = await fetch(`${API_BASE_URL}/api/usage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify(form),
-        })
-        const data = await response.json()
-        setMessage(data.message || 'Usage record saved')
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/usage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify(form),
+            })
+            const data = await response.json()
+            setMessage(data.message || 'Usage record saved')
+        } catch {
+            setMessage('Unable to connect to backend')
+        }
     }
 
     return (
@@ -66,6 +98,8 @@ const UsageEntry = () => {
                 <div className="mb-6">
                     <p className="text-sm uppercase tracking-[0.3em] text-cyan-300">Usage Data Entry</p>
                     <h1 className="mt-3 text-3xl font-semibold text-white">Record Gearbox Usage</h1>
+                    {IS_DEMO_MODE && <p className="mt-2 text-sm text-slate-400">Demo records are saved in this browser only.</p>}
+                    <Link to="/" className="mt-3 inline-block text-cyan-300 hover:text-cyan-200">Back to dashboard</Link>
                 </div>
                 {message && <div className="mb-6 rounded-3xl bg-cyan-500/10 p-4 text-cyan-200">{message}</div>}
                 <form onSubmit={handleSubmit} className="grid gap-5 lg:grid-cols-2">

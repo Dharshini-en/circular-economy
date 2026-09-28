@@ -1,12 +1,33 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { API_BASE_URL } from '../api'
+import { Link, useParams } from 'react-router-dom'
+import { API_BASE_URL, IS_DEMO_MODE } from '../api'
+import { readDemoProducts } from '../demoStore'
 
 const ProductDetails = () => {
     const { productId } = useParams()
     const [details, setDetails] = useState(null)
 
     useEffect(() => {
+        if (IS_DEMO_MODE) {
+            const { products } = readDemoProducts()
+            const product = products.find((item) => item.product_id === productId)
+            if (product) {
+                setDetails({
+                    product: {
+                        product_name: 'Industrial Gearbox',
+                        product_category: 'Gearbox',
+                        manufacturer: 'ABC Industries',
+                        manufacture_date: 'Not specified',
+                        expected_life_hours: 3000,
+                        service_interval_hours: 500,
+                        ...product,
+                    },
+                    usage: product.operating_hours ? product : null,
+                    maintenance: product.maintenance || [],
+                })
+            }
+            return
+        }
         const token = localStorage.getItem('ai_plm_token')
         if (!token) return
 
@@ -16,12 +37,18 @@ const ProductDetails = () => {
     }, [productId])
 
     if (!details) {
-        return <div className="min-h-screen bg-slate-950 p-6 text-slate-100">Loading...</div>
+        return (
+            <div className="min-h-screen bg-slate-950 p-6 text-slate-100">
+                <p>Product not found.</p>
+                <Link to="/" className="mt-4 inline-block text-cyan-300">Back to dashboard</Link>
+            </div>
+            )
     }
 
     return (
         <div className="min-h-screen bg-slate-950 p-6 text-slate-100">
             <div className="mx-auto max-w-6xl rounded-3xl border border-slate-800 bg-slate-900 p-8 shadow-xl shadow-slate-950/20">
+                <Link to="/" className="mb-6 inline-block text-cyan-300 hover:text-cyan-200">Back to dashboard</Link>
                 <div className="grid gap-6 lg:grid-cols-[1.8fr_1.2fr]">
                     <div>
                         <p className="text-sm uppercase tracking-[0.3em] text-cyan-300">Product Details</p>
