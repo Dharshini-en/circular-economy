@@ -1,7 +1,33 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { API_BASE_URL, IS_DEMO_MODE } from '../api'
-import { readDemoProducts } from '../demoStore'
+import { downloadDemoFile, readDemoProducts } from '../demoStore'
+
+const FileDownload = ({ label, file }) => {
+    if (!file) {
+        return <div className="rounded-3xl bg-slate-900 p-4 text-slate-100">{label}: Not uploaded</div>
+    }
+
+    if (typeof file === 'string') {
+        return <div className="rounded-3xl bg-slate-900 p-4 text-slate-100">{label}: {file.split('/').pop()}</div>
+    }
+
+    const handleDownload = async () => {
+        try {
+            const downloaded = await downloadDemoFile(file.storageKey, file.name)
+            if (!downloaded) window.alert('This file is no longer available in this browser.')
+        } catch {
+            window.alert('Unable to download this file from browser storage.')
+        }
+    }
+
+    return (
+        <button type="button" onClick={handleDownload} className="flex w-full items-center justify-between gap-4 rounded-3xl bg-slate-900 p-4 text-left text-slate-100 hover:bg-slate-800">
+            <span className="min-w-0 truncate">{label}: {file.name}</span>
+            <span className="shrink-0 text-cyan-300">Download</span>
+        </button>
+    )
+}
 
 const ProductDetails = () => {
     const { productId } = useParams()
@@ -42,7 +68,7 @@ const ProductDetails = () => {
                 <p>Product not found.</p>
                 <Link to="/" className="mt-4 inline-block text-cyan-300">Back to dashboard</Link>
             </div>
-            )
+        )
     }
 
     return (
@@ -58,8 +84,8 @@ const ProductDetails = () => {
                     <div className="rounded-3xl border border-slate-800 bg-slate-950/80 p-6">
                         <p className="text-sm uppercase tracking-[0.3em] text-slate-400">CAD & BOM</p>
                         <div className="mt-4 space-y-3">
-                            <div className="rounded-3xl bg-slate-900 p-4 text-slate-100">CAD File: {details.product.cad_file || 'Not uploaded'}</div>
-                            <div className="rounded-3xl bg-slate-900 p-4 text-slate-100">BOM File: {details.product.bom_file || 'Not uploaded'}</div>
+                            <FileDownload label="CAD File" file={details.product.cad_file} />
+                            <FileDownload label="BOM File" file={details.product.bom_file} />
                         </div>
                     </div>
                 </div>

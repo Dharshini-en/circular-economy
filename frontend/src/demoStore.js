@@ -1,4 +1,15 @@
 const STORAGE_KEY = 'ai_plm_demo_products'
+const FILE_DATABASE = 'ai_plm_demo_files'
+const FILE_STORE = 'files'
+
+function openDemoFileDatabase() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(FILE_DATABASE, 1)
+        request.onupgradeneeded = () => request.result.createObjectStore(FILE_STORE, { keyPath: 'key' })
+        request.onsuccess = () => resolve(request.result)
+        request.onerror = () => reject(request.error)
+    })
+}
 
 export const DEFAULT_DEMO_PRODUCTS = [
     { product_id: 'GBX001', health_score: 96, remaining_useful_life: 430, service_required: 'No' },
@@ -23,6 +34,37 @@ export function readDemoProducts() {
 
 export function writeDemoProducts(products) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(products))
+}
+
+export async function saveDemoFile(key, file) {
+    const database = await openDemoFileDatabase()
+    await new Promise((resolve, reject) => {
+        const transaction = database.transaction(FILE_STORE, 'readwrite')
+        transaction.objectStore(FILE_STORE).put({ key, file })
+        transaction.oncomplete = resolve
+        transaction.onerror = () => reject(transaction.error)
+        transaction.onabort = () => reject(transaction.error)
+    })
+    database.close()
+}
+
+export async function downloadDemoFile(key, fileName) {
+    const database = await openDemoFileDatabase()
+    const storedFile = await new Promise((resolve, reject) => {
+        const request = database.transaction(FILE_STORE, 'readonly').objectStore(FILE_STORE).get(key)
+        request.onsuccess = () => resolve(request.result?.file)
+        request.onerror = () => reject(request.error)
+    })
+    database.close()
+    if (!storedFile) return false
+
+    const url = URL.createObjectURL(storedFile)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = fileName
+    link.click()
+    URL.revokeObjectURL(url)
+    return true
 }
 
 export function summarizeDemoProducts(products) {

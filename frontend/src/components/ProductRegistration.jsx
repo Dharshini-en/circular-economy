@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { API_BASE_URL, IS_DEMO_MODE } from '../api'
-import { readDemoProducts, writeDemoProducts } from '../demoStore'
+import { readDemoProducts, saveDemoFile, writeDemoProducts } from '../demoStore'
 
 const ProductRegistration = () => {
     const [form, setForm] = useState({
@@ -41,15 +41,27 @@ const ProductRegistration = () => {
                 setMessage('That Product ID already exists in this demo.')
                 return
             }
-            writeDemoProducts([...products, {
-                ...form,
-                expected_life_hours: Number(form.expected_life_hours),
-                service_interval_hours: Number(form.service_interval_hours),
-                health_score: 100,
-                remaining_useful_life: Number(form.expected_life_hours),
-                service_required: 'No',
-            }])
-            navigate('/')
+            const cadFile = event.currentTarget.elements.cad_file.files[0]
+            const bomFile = event.currentTarget.elements.bom_file.files[0]
+            const cadKey = `${form.product_id}:cad`
+            const bomKey = `${form.product_id}:bom`
+            try {
+                if (cadFile) await saveDemoFile(cadKey, cadFile)
+                if (bomFile) await saveDemoFile(bomKey, bomFile)
+                writeDemoProducts([...products, {
+                    ...form,
+                    expected_life_hours: Number(form.expected_life_hours),
+                    service_interval_hours: Number(form.service_interval_hours),
+                    health_score: 100,
+                    remaining_useful_life: Number(form.expected_life_hours),
+                    service_required: 'No',
+                    cad_file: cadFile ? { name: cadFile.name, storageKey: cadKey } : null,
+                    bom_file: bomFile ? { name: bomFile.name, storageKey: bomKey } : null,
+                }])
+                navigate('/')
+            } catch {
+                setMessage('Could not save the files in this browser. Try smaller files or free up storage.')
+            }
             return
         }
         const token = localStorage.getItem('ai_plm_token')
@@ -100,14 +112,14 @@ const ProductRegistration = () => {
                             />
                         </label>
                     ))}
-                    {!IS_DEMO_MODE && <label className="block lg:col-span-2">
-                        <span className="text-slate-300">Upload CAD Model</span>
-                        <input type="file" name="cad_file" className="mt-2 w-full text-slate-100" />
-                    </label>}
-                    {!IS_DEMO_MODE && <label className="block lg:col-span-2">
-                        <span className="text-slate-300">Upload BOM</span>
-                        <input type="file" name="bom_file" className="mt-2 w-full text-slate-100" />
-                    </label>}
+                    <label className="block lg:col-span-2">
+                        <span className="text-slate-300">CAD Model (STEP, IGES, STL, OBJ)</span>
+                        <input type="file" accept=".step,.stp,.iges,.igs,.stl,.obj,.3mf" name="cad_file" className="mt-2 w-full text-slate-100" />
+                    </label>
+                    <label className="block lg:col-span-2">
+                        <span className="text-slate-300">Bill of Materials (XLSX, XLS, CSV, PDF)</span>
+                        <input type="file" accept=".xlsx,.xls,.csv,.pdf" name="bom_file" className="mt-2 w-full text-slate-100" />
+                    </label>
                     <button type="submit" className="rounded-3xl bg-cyan-500 px-6 py-3 text-white transition hover:bg-cyan-400">Save Product</button>
                     <button type="button" onClick={handleAutoFill} className="rounded-3xl border border-cyan-500 bg-slate-950 px-6 py-3 text-cyan-300 transition hover:bg-slate-900">Auto Fill Example</button>
                 </form>
