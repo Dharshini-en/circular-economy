@@ -1,0 +1,19 @@
+{
+    "name": "AI Predictive Service Scheduling",
+    "short_name": "Service AI",
+    "description": "Predictive maintenance and service scheduling dashboard.",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "any",
+    "background_color": "#08111f",
+    "theme_color": "#08111f",
+    "icons": [
+        {
+            "src": "/app-icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ]
+}
