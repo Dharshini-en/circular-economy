@@ -3,7 +3,7 @@ import { FaChartLine, FaCogs, FaExclamationTriangle, FaRegFileAlt, FaWarehouse }
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend, ArcElement } from 'chart.js'
 import { Line, Bar } from 'react-chartjs-2'
 import { useNavigate } from 'react-router-dom'
-import { API_BASE_URL } from '../api'
+import { API_BASE_URL, IS_DEMO_MODE } from '../api'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend, ArcElement)
 
@@ -70,9 +70,22 @@ const Dashboard = () => {
     const [products, setProducts] = useState([])
     const [loading, setLoading] = useState(true)
     const navigate = useNavigate()
+    const isDemo = IS_DEMO_MODE && !localStorage.getItem('ai_plm_token')
 
     useEffect(() => {
         const token = localStorage.getItem('ai_plm_token')
+        if (IS_DEMO_MODE && !token) {
+            setDashboard(DEMO_DASHBOARD)
+            setAlerts(DEMO_ALERTS)
+            setProducts(DEMO_PRODUCTS)
+            setRecommendations([
+                'Replace lubricant on components with high operating hours',
+                'Inspect bearings after the next scheduled shutdown',
+                'Reduce load to extend remaining useful life',
+            ])
+            setLoading(false)
+            return
+        }
         if (!token) {
             navigate('/login')
             return
@@ -144,11 +157,12 @@ const Dashboard = () => {
                     <div className="mb-8">
                         <p className="text-sm uppercase tracking-[0.3em] text-cyan-300">Windchill AI Dashboard</p>
                         <h2 className="mt-4 text-3xl font-semibold">Gearbox Service Monitor</h2>
+                        {isDemo && <p className="mt-2 text-sm text-cyan-300">Public demo - sample data</p>}
                     </div>
                     <nav className="space-y-4 text-slate-300">
                         <button className="flex w-full items-center gap-3 rounded-3xl bg-slate-950/50 px-4 py-3 text-left text-white">Dashboard</button>
-                        <button onClick={() => navigate('/register-product')} className="flex w-full items-center gap-3 rounded-3xl px-4 py-3 hover:bg-slate-950/50">Register Product</button>
-                        <button onClick={() => navigate('/usage-entry')} className="flex w-full items-center gap-3 rounded-3xl px-4 py-3 hover:bg-slate-950/50">Usage Entry</button>
+                        <button disabled={isDemo} onClick={() => navigate('/register-product')} className={`flex w-full items-center gap-3 rounded-3xl px-4 py-3 ${isDemo ? 'cursor-not-allowed opacity-50' : 'hover:bg-slate-950/50'}`}>Register Product</button>
+                        <button disabled={isDemo} onClick={() => navigate('/usage-entry')} className={`flex w-full items-center gap-3 rounded-3xl px-4 py-3 ${isDemo ? 'cursor-not-allowed opacity-50' : 'hover:bg-slate-950/50'}`}>Usage Entry</button>
                     </nav>
                 </aside>
 
